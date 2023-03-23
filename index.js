@@ -15,9 +15,13 @@ const exerciseSchema = new Schema({
     date: Date
 });
 
+const Exercise = mongoose.model("Exercise", exerciseSchema);
+
 const userSchema = new Schema({
     username: {type: String, required: true}
 });
+
+const User = mongoose.model("User", userSchema);
 
 const logSubSchema = new Schema({
     description: String,
@@ -25,15 +29,20 @@ const logSubSchema = new Schema({
     date: Date
 });
 
+const LogSub = mongoose.model("LogSub", logSubSchema);
+
 const logSchema = new Schema({
     username: {type: String, required: true},
     count: 1,
     log: [ logSubSchema ]
 });
+
+const Log = mongoose.model("Log", logSchema);
 //
 
 app.use(cors())
 app.use(express.static('public'))
+app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
@@ -53,12 +62,39 @@ app.post("/api/users", (req, res) => {
 
 // Gets list of users
 app.get("/api/users", (req, res) => {
-
+    User.find({}, (err, usersFound) => {
+        if(err) return console.error(err);
+        let users = [];
+        usersFound.map( user => { users.push(user) });
+        res.json(users);
+    });
 });
 
 // Creates a Excersise
 app.post("/api/users/:_id/exercises", (req, res) => {
-
+    const description = req.query.description;
+    const duration = req.query.duration;
+    let date = req.query.date;
+    if(!date) {
+        date = (new Date()).toDateString();
+    }
+    else {
+        date = (new Date(date)).toDateString();
+    }
+    User.findById(_id, (err, userFound) => {
+        if (err) return console.error(err);
+        const exerciseRecord = new Exercise({
+            username: userFound.username,
+            description: description,
+            duration: duration,
+            date: date
+        });
+        exerciseRecord.save((err, insertedExercise) => {
+            if(err) return console.error(err);
+            res.json({...userFound, ...insertedExercise});
+        });
+    });
+    
 });
 
 // Gets log of user
