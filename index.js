@@ -12,7 +12,7 @@ const exerciseSchema = new Schema({
     username: {type: String, required: true},
     description: String,
     duration: Number,
-    date: Date
+    date: String
 });
 
 const Exercise = mongoose.model("Exercise", exerciseSchema);
@@ -26,14 +26,14 @@ const User = mongoose.model("User", userSchema);
 const logSubSchema = new Schema({
     description: String,
     duration: Number,
-    date: Date
+    date: String
 });
 
 const LogSub = mongoose.model("LogSub", logSubSchema);
 
 const logSchema = new Schema({
     username: {type: String, required: true},
-    count: 1,
+    count: Number,
     log: [ logSubSchema ]
 });
 
@@ -53,7 +53,7 @@ const listener = app.listen(process.env.PORT || 3000, () => {
 
 // Creates a user
 app.post("/api/users", (req, res) => {
-    const userRecord = new userSchema({username: req.body.username});
+    const userRecord = new User({username: req.body.username});
     userRecord.save((err, savedUser) => {
         if (err) return console.error(err);
         res.json({username: savedUser.username, _id: savedUser.id});
@@ -72,16 +72,16 @@ app.get("/api/users", (req, res) => {
 
 // Creates a Excersise
 app.post("/api/users/:_id/exercises", (req, res) => {
-    const description = req.query.description;
-    const duration = req.query.duration;
-    let date = req.query.date;
+    const description = req.body.description;
+    const duration = req.body.duration;
+    let date = req.body.date;
     if(!date) {
         date = (new Date()).toDateString();
     }
     else {
         date = (new Date(date)).toDateString();
     }
-    User.findById(_id, (err, userFound) => {
+    User.findById(req.params._id, (err, userFound) => {
         if (err) return console.error(err);
         const exerciseRecord = new Exercise({
             username: userFound.username,
@@ -91,7 +91,12 @@ app.post("/api/users/:_id/exercises", (req, res) => {
         });
         exerciseRecord.save((err, insertedExercise) => {
             if(err) return console.error(err);
-            res.json({...userFound, ...insertedExercise});
+            res.json({
+              _id: userFound.id,
+              username: userFound.username,
+              date: insertedExercise.date,
+              duration: insertedExercise.duration,
+              description: insertedExercise.description});
         });
     });
     
@@ -99,5 +104,5 @@ app.post("/api/users/:_id/exercises", (req, res) => {
 
 // Gets log of user
 app.get("/api/users/:_id/logs", (req, res) => {
-
+  res.json({});
 });
