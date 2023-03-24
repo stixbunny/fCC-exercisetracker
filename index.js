@@ -12,7 +12,8 @@ const exerciseSchema = new Schema({
     username: {type: String, required: true},
     description: String,
     duration: Number,
-    date: String
+    date: String,
+    _id: String
 });
 
 const Exercise = mongoose.model("Exercise", exerciseSchema);
@@ -34,6 +35,7 @@ const LogSub = mongoose.model("LogSub", logSubSchema);
 const logSchema = new Schema({
     username: {type: String, required: true},
     count: Number,
+    _id: String,
     log: [ logSubSchema ]
 });
 
@@ -87,22 +89,26 @@ app.post("/api/users/:_id/exercises", (req, res) => {
             username: userFound.username,
             description: description,
             duration: duration,
-            date: date
+            date: date,
+            _id: userFound.id
         });
         exerciseRecord.save((err, insertedExercise) => {
             if(err) return console.error(err);
             res.json({
-              _id: userFound.id,
-              username: userFound.username,
+              _id: insertedExercise.id,
+              username: insertedExercise.username,
               date: insertedExercise.date,
               duration: insertedExercise.duration,
               description: insertedExercise.description});
         });
     });
-    
 });
 
 // Gets log of user
 app.get("/api/users/:_id/logs", (req, res) => {
+  Log.findById(req.params._id, (err, logFound) => {
+    if (err) return console.error(err);
+    
+  });
   res.json({});
 });
