@@ -12,8 +12,8 @@ const exerciseSchema = new Schema({
     username: {type: String, required: true},
     description: String,
     duration: Number,
-    date: String,
-    _id: String
+    date: Date,
+    userId: String
 });
 
 const Exercise = mongoose.model("Exercise", exerciseSchema);
@@ -23,28 +23,11 @@ const userSchema = new Schema({
 });
 
 const User = mongoose.model("User", userSchema);
-
-const logSubSchema = new Schema({
-    description: String,
-    duration: Number,
-    date: String
-});
-
-const LogSub = mongoose.model("LogSub", logSubSchema);
-
-const logSchema = new Schema({
-    username: {type: String, required: true},
-    count: Number,
-    _id: String,
-    log: [ logSubSchema ]
-});
-
-const Log = mongoose.model("Log", logSchema);
 //
 
 app.use(cors())
 app.use(express.static('public'))
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
 });
@@ -90,25 +73,53 @@ app.post("/api/users/:_id/exercises", (req, res) => {
             description: description,
             duration: duration,
             date: date,
-            _id: userFound.id
+            userId: userFound.id
         });
         exerciseRecord.save((err, insertedExercise) => {
             if(err) return console.error(err);
-            res.json({
-              _id: insertedExercise.id,
+            const result = {
+              _id: insertedExercise.userId,
               username: insertedExercise.username,
-              date: insertedExercise.date,
+              date: insertedExercise.date.toDateString(),
               duration: insertedExercise.duration,
-              description: insertedExercise.description});
+              description: insertedExercise.description};
+            console.log(result);
+            res.json(result);
         });
     });
 });
 
 // Gets log of user
 app.get("/api/users/:_id/logs", (req, res) => {
-  Log.findById(req.params._id, (err, logFound) => {
+  console.log(req.path);
+  const from = req.query.from || (new Date(0)).toDateString();
+  const to = req.query.to || (new Date(Date.now())).toDateString();
+  const limit = Number(req.query.limit) || 0;
+  const id = req.params._id;
+  console.log(`from: ${from} to: ${to} limit: ${limit} id: ${id}`);
+  Exercise.find({userId: id, date: {$gte: from, $lte: to}}).limit(limit).exec((err, exerciseFound) => {
     if (err) return console.error(err);
-    
+    const count = exerciseFound.length;
+    let username;
+    if(count > 1) {
+      username = exerciseFound[0].username;
+    }
+    else {
+      username = exerciseFound.username;
+    }
+    const logs = exerciseFound.map((exercise => {
+      return {
+        description: exercise.description,
+        duration: exercise.duration,
+        date: exercise.date.toDateString()
+      }
+    }));
+    const result = {
+      _id: id,
+      username: username,
+      count: count,
+      log: logs};
+    console.log(result);
+    res.json(result)
   });
-  res.json({});
 });
